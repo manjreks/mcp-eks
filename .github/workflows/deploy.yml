@@ -1,0 +1,100 @@
+name: Build and deploy MCP server to EKS
+ 
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+ 
+permissions:
+  id-token: write   # lets the workflow request an OIDC token to assume the AWS role
+  contents: read
+ 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false   # never cancel a deployment halfway through
+ 
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  EKS_CLUSTER: ${{ vars.EKS_CLUSTER }}
+ 
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+ 
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+ 
+      - name: Run tests
+        run: pytest -q
+ 
+  deploy:
+    name: Build, push and deploy
+    needs: test
+    if: github.event_name != 'pull_request'   # PRs only run the tests
+    runs-on: ubuntu-latest
+    # Add required reviewers to this environment for manual approval
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+ 
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+ 
+      - name: Build and push image
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+          docker build --platform linux/amd64 -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "uri=$IMAGE" >> "$GITHUB_OUTPUT"
+ 
+      - name: Connect kubectl to the cluster
+        run: aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+ 
+      - name: Deploy
+        env:
+          IMAGE: ${{ steps.image.outputs.uri }}
+        run: |
+          # Point the Deployment at the image built for this commit
+          sed -i "s|image: .*${ECR_REPOSITORY}:.*|image: ${IMAGE}|" k8s.yaml
+          grep -n "image:" k8s.yaml
+          kubectl apply -f k8s.yaml
+          kubectl rollout status deployment/mcp-server --timeout=180s
+ 
+      - name: Roll back on failure
+        if: failure() && steps.image.outcome == 'success'
+        run: |
+          kubectl rollout undo deployment/mcp-server || true
+          kubectl rollout status deployment/mcp-server --timeout=180s || true
+ 
+      - name: Smoke test through the public endpoint
+        if: vars.MCP_URL != ''
+        env:
+          COGNITO_DOMAIN: ${{ vars.COGNITO_DOMAIN }}
+          COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
+          COGNITO_CLIENT_SECRET: ${{ secrets.COGNITO_CLIENT_SECRET }}
+        run: |
+          pip install -r requirements.txt
+          python test_client.py "${{ vars.MCP_URL }}"

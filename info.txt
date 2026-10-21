@@ -1,0 +1,24 @@
+aws account id ->046282978963
+
+external ip address -ae20ca2f6dd134c43bb0798b6950585c-1842884824.us-east-1.elb.amazonaws.com
+
+mcp-server   LoadBalancer   10.100.251.74   
+ae20ca2f6dd134c43bb0798b6950585c-1842884824.us-east-1.elb.amazonaws.com   80:31958/TCP   48s
+aws acm describe-certificate --region $AWS_REGION \
+  --certificate-arn arn:aws:acm:us-east-1:046282978963:certificate/1a90d53d-ee15-45cd-8827-da3127e95eb7 \
+  --query "Certificate.[Status,FailureReason,DomainName]" --output table
+
+
+aws acm delete-certificate --region $AWS_REGION --certificate-arn arn:aws:acm:us-east-1:046282978963:certificate/1a90d53d-ee15-45cd-8827-da3127e95eb7
+
+
+"UserPoolId": "us-east-1_wVpmH7K1g",
+        "ClientName": "mcp-m2m",
+        "ClientId": "396tlp2k8qb98luhq11nfo2cok",
+        "ClientSecret": "1bgn603emffsnjt1o2c9u23esqabmfetetrou1h9ej1nafq64j27",
+
+export COGNITO_CLIENT_ID="396tlp2k8qb98luhq11nfo2cok"
+export COGNITO_CLIENT_SECRET="1bgn603emffsnjt1o2c9u23esqabmfetetrou1h9ej1nafq64j27"
+
+
+"OpenIDConnectProviderArn": "arn:aws:iam::046282978963:oidc-provider/token.actions.githubusercontent.com"

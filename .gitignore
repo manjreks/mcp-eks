@@ -1,0 +1,53 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# ---------- Secrets & credentials (never commit) ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+credentials
+.aws/
+
+# Kubernetes access configs and generated secrets
+kubeconfig
+*.kubeconfig
+*-secret.yaml
+
+# ---------- Tooling / build artifacts ----------
+*.log
+*.tar.gz
+*.zip
+eksctl*.tar.gz
+helm*.zip
+
+# Terraform (if added later)
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# ---------- Editors & OS ----------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
