@@ -70,7 +70,7 @@ def add(a: int, b: int) -> int:
 @mcp.tool()
 def greet(name: str) -> str:
     """Say hello to someone."""
-    return f"Hello, {name}! Greetings from EKS."
+    return f"Hello, {name}! Greetings - Deployment Done from EKS."
  
 # Plain HTTP endpoint for Kubernetes health probes
 @mcp.custom_route("/health", methods=["GET"])
