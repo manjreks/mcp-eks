@@ -103,4 +103,4 @@ jobs:
           COGNITO_CLIENT_SECRET: ${{ secrets.COGNITO_CLIENT_SECRET }}
         run: |
           pip install -r requirements.txt
-          python test_client.py "${{ vars.MCP_URL }}"
+          python smoke_client.py "${{ vars.MCP_URL }}"
